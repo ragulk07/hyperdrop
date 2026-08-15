@@ -58,6 +58,8 @@ body {
   filter: blur(100px);
   opacity: 0.25;
   pointer-events: none;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .orb-1 {
@@ -706,6 +708,7 @@ body {
   font-size: 0.8rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .progress-container {
@@ -726,8 +729,8 @@ body {
   width: 0%;
   background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
   border-radius: 5px;
-  transition: width 0.15s ease-out;
   box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+  will-change: width;
 }
 
 .progress-meta {
@@ -740,11 +743,13 @@ body {
   font-weight: 700;
   color: var(--accent-cyan);
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .speed-eta-group {
   color: var(--text-muted);
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .dot-separator { margin: 0 6px; }

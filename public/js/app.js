@@ -314,16 +314,31 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- TRANSFER PROGRESS & DASHBOARD ---
+  let dashboardRafId = null;
+  let latestProgressArgs = null;
+
+  function scheduleDashboardUpdate(filename, statusText, currentBytes, totalBytes, percent, speedBps, etaSec) {
+    latestProgressArgs = [filename, statusText, currentBytes, totalBytes, percent, speedBps, etaSec];
+    if (!dashboardRafId) {
+      dashboardRafId = requestAnimationFrame(() => {
+        dashboardRafId = null;
+        if (latestProgressArgs) {
+          showDashboard(...latestProgressArgs);
+        }
+      });
+    }
+  }
+
   transfer.on('send_progress', (data) => {
-    showDashboard(data.task.name, 'Sending...', data.bytesSent, data.totalBytes, data.percent, data.speedBps, data.etaSeconds);
+    scheduleDashboardUpdate(data.task.name, 'Sending...', data.bytesSent, data.totalBytes, data.percent, data.speedBps, data.etaSeconds);
   });
 
   transfer.on('receive_start', (task) => {
-    showDashboard(task.name, 'Receiving...', 0, task.size, 0, 0, 0);
+    scheduleDashboardUpdate(task.name, 'Receiving...', 0, task.size, 0, 0, 0);
   });
 
   transfer.on('receive_progress', (data) => {
-    showDashboard(data.task.name, 'Receiving...', data.bytesReceived, data.totalBytes, data.percent, data.speedBps, data.etaSeconds);
+    scheduleDashboardUpdate(data.task.name, 'Receiving...', data.bytesReceived, data.totalBytes, data.percent, data.speedBps, data.etaSeconds);
   });
 
   function showDashboard(filename, statusText, currentBytes, totalBytes, percent, speedBps, etaSec) {
