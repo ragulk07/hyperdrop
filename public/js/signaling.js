@@ -23,7 +23,7 @@ class SignalingClient {
           }
           reject(new Error('WebSocket server unavailable'));
         }
-      }, 1200);
+      }, 8000);
 
       try {
         this.ws = new WebSocket(wsUrl);

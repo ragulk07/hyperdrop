@@ -15,6 +15,58 @@ const publicDir = fs.existsSync(path.join(__dirname, 'public', 'index.html'))
   ? path.join(__dirname, 'public')
   : __dirname;
 
+app.use(express.json());
+
+// In-memory fallback HTTP signal store
+const httpRooms = new Map();
+
+app.all('/api/signal', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Content-Type', 'application/json');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  let body = req.body || {};
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (e) {}
+  }
+
+  const room = (req.query.room || body.room || '').toUpperCase().trim();
+  if (!room) {
+    return res.status(400).json({ error: 'Room code required' });
+  }
+
+  if (!httpRooms.has(room)) {
+    httpRooms.set(room, { signals: [], lastActive: Date.now() });
+  }
+
+  const roomData = httpRooms.get(room);
+  roomData.lastActive = Date.now();
+
+  if (req.method === 'POST') {
+    const signal = body.signal || body;
+    if (signal) {
+      signal.id = signal.id || ('sig_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
+      signal.timestamp = Date.now();
+      roomData.signals.push(signal);
+      if (roomData.signals.length > 100) roomData.signals.shift();
+    }
+    return res.status(200).json({ success: true, signalId: signal ? signal.id : null });
+  }
+
+  if (req.method === 'GET') {
+    const since = parseInt(req.query.since || '0', 10);
+    const newSignals = roomData.signals.filter(s => s.timestamp > since);
+    return res.status(200).json({ room, signals: newSignals, serverTime: Date.now() });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+});
+
 // Serve static frontend files
 app.use(express.static(publicDir));
 
