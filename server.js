@@ -15,10 +15,21 @@ const publicDir = fs.existsSync(path.join(__dirname, 'public', 'index.html'))
   ? path.join(__dirname, 'public')
   : __dirname;
 
-app.use(express.json());
+// In-memory unified room store (Shared between WebSockets & HTTP fallback)
+// roomCode -> { host: ws/null, joiner: ws/null, signals: [], lastActive: Date.now() }
+const rooms = new Map();
 
-// In-memory fallback HTTP signal store
-const httpRooms = new Map();
+// Helper to generate 6-character random room code
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return rooms.has(code) ? generateRoomCode() : code;
+}
+
+app.use(express.json());
 
 app.all('/api/signal', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -40,11 +51,11 @@ app.all('/api/signal', (req, res) => {
     return res.status(400).json({ error: 'Room code required' });
   }
 
-  if (!httpRooms.has(room)) {
-    httpRooms.set(room, { signals: [], lastActive: Date.now() });
+  if (!rooms.has(room)) {
+    rooms.set(room, { host: null, joiner: null, signals: [], lastActive: Date.now() });
   }
 
-  const roomData = httpRooms.get(room);
+  const roomData = rooms.get(room);
   roomData.lastActive = Date.now();
 
   if (req.method === 'POST') {
@@ -93,20 +104,6 @@ function getLocalIpAddress() {
 
 const localIp = getLocalIpAddress();
 
-// In-memory room store
-// roomCode -> { host: ws, joiner: ws }
-const rooms = new Map();
-
-// Helper to generate 6-character random room code
-function generateRoomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid easily confused chars
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return rooms.has(code) ? generateRoomCode() : code;
-}
-
 wss.on('connection', (ws) => {
   ws.isAlive = true;
   ws.roomCode = null;
@@ -126,7 +123,14 @@ wss.on('connection', (ws) => {
           const code = generateRoomCode();
           ws.roomCode = code;
           ws.role = 'host';
-          rooms.set(code, { host: ws, joiner: null });
+
+          let room = rooms.get(code);
+          if (!room) {
+            room = { host: ws, joiner: null, signals: [], lastActive: Date.now() };
+            rooms.set(code, room);
+          } else {
+            room.host = ws;
+          }
 
           ws.send(JSON.stringify({
             type: 'room_created',
@@ -141,27 +145,25 @@ wss.on('connection', (ws) => {
 
         case 'join_room': {
           const code = (roomCode || '').toUpperCase().trim();
-          const room = rooms.get(code);
+          let room = rooms.get(code);
 
           if (!room) {
-            ws.send(JSON.stringify({
-              type: 'error',
-              message: 'Room code not found or has expired.'
-            }));
-            return;
-          }
-
-          if (room.joiner && room.joiner.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'error',
-              message: 'Room is already full (max 2 devices per session).'
-            }));
-            return;
+            if (code.length === 6) {
+              room = { host: null, joiner: ws, signals: [], lastActive: Date.now() };
+              rooms.set(code, room);
+            } else {
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Room code not found or has expired.'
+              }));
+              return;
+            }
+          } else {
+            room.joiner = ws;
           }
 
           ws.roomCode = code;
           ws.role = 'joiner';
-          room.joiner = ws;
 
           // Notify joiner
           ws.send(JSON.stringify({
@@ -170,7 +172,7 @@ wss.on('connection', (ws) => {
             role: 'joiner'
           }));
 
-          // Notify host that joiner has arrived
+          // Notify host if host is connected via WebSocket
           if (room.host && room.host.readyState === WebSocket.OPEN) {
             room.host.send(JSON.stringify({
               type: 'peer_joined',
@@ -189,6 +191,20 @@ wss.on('connection', (ws) => {
           if (!ws.roomCode) return;
           const room = rooms.get(ws.roomCode);
           if (!room) return;
+
+          const signalPayload = {
+            type: type === 'ice_candidate' ? 'ICE_CANDIDATE' : type.toUpperCase(),
+            senderRole: ws.role,
+            id: 'ws_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+            timestamp: Date.now()
+          };
+          if (type === 'offer') signalPayload.offer = payload;
+          else if (type === 'answer') signalPayload.answer = payload;
+          else if (type === 'ice_candidate') signalPayload.candidate = payload;
+          else signalPayload.payload = payload;
+
+          room.signals.push(signalPayload);
+          if (room.signals.length > 100) room.signals.shift();
 
           const target = ws.role === 'host' ? room.joiner : room.host;
           if (target && target.readyState === WebSocket.OPEN) {
