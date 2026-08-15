@@ -1,0 +1,25 @@
+{
+  "name": "hyperdrop",
+  "version": "1.0.0",
+  "description": "Ultra-fast direct peer-to-peer file transfer using WebRTC",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "webrtc",
+    "p2p",
+    "file-transfer",
+    "peer-to-peer",
+    "express",
+    "websocket"
+  ],
+  "author": "HyperDrop Team",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "ws": "^8.21.3"
+  }
+}

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperDrop — Ultra-Fast Direct P2P File Sharing</title>
+  <meta name="description" content="Secure, end-to-end encrypted peer-to-peer file transfer directly between devices using WebRTC. Zero server storage, maximum transfer speed.">
+  <meta name="keywords" content="P2P file transfer, WebRTC file sharing, secure file drop, direct file transfer, HyperDrop">
+  <meta name="author" content="HyperDrop Team">
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="HyperDrop — Ultra-Fast Direct P2P File Sharing">
+  <meta property="og:description" content="Secure, end-to-end encrypted peer-to-peer file transfer directly between devices using WebRTC. Zero server storage, maximum transfer speed.">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HyperDrop — Ultra-Fast Direct P2P File Sharing">
+  <meta name="twitter:description" content="Secure, end-to-end encrypted peer-to-peer file transfer directly between devices using WebRTC.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Vendor Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <div class="app-background">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">HyperDrop</h1>
+          <p class="brand-tagline">Direct Peer-to-Peer File Transfer</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="connection-badge disconnected" id="connectionBadge">
+          <span class="badge-dot"></span>
+          <span class="badge-text" id="badgeText">Offline</span>
+        </div>
+        <button class="icon-btn" id="openSettingsBtn" title="ICE / TURN Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-grid">
+      <!-- Left: Room & Connection Panel -->
+      <section class="card room-card">
+        <div class="card-header">
+          <h2>Device Pairing</h2>
+          <span class="step-indicator">Step 1</span>
+        </div>
+
+        <div class="room-options">
+          <div class="tabs">
+            <button class="tab-btn active" id="createTabBtn">Create Room</button>
+            <button class="tab-btn" id="joinTabBtn">Join Room</button>
+          </div>
+
+          <!-- Create Room View -->
+          <div class="tab-content active" id="createRoomView">
+            <p class="section-desc">Create a room to pair with another laptop or phone on your Wi-Fi or internet.</p>
+            
+            <button class="btn btn-primary btn-block" id="createRoomBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Generate Room Code
+            </button>
+
+            <div class="room-code-display hidden" id="roomCodeDisplay">
+              <span class="label">Your Room Code</span>
+              <div class="code-box">
+                <span class="code-value" id="roomCodeValue">------</span>
+                <button class="icon-btn copy-btn" id="copyCodeBtn" title="Copy Code">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+              </div>
+
+              <div class="pair-actions">
+                <button class="btn btn-secondary btn-sm" id="copyLinkBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                  Copy Pair Link
+                </button>
+                <button class="btn btn-secondary btn-sm" id="showQrBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                  Show QR Code
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Join Room View -->
+          <div class="tab-content" id="joinRoomView">
+            <p class="section-desc">Enter the room code or paste the pair link generated on the host device.</p>
+            <div class="input-group">
+              <input type="text" id="joinCodeInput" placeholder="Enter Code or Paste Link" autocomplete="off" spellcheck="false" class="code-input">
+              <button class="btn btn-primary" id="joinRoomBtn">Connect</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connection Details Info Box -->
+        <div class="connection-info-box" id="connectionInfoBox">
+          <div class="info-row">
+            <span class="info-label">Peer Status:</span>
+            <span class="info-val" id="peerStatusVal">Waiting for room setup...</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">P2P Channel:</span>
+            <span class="info-val" id="channelStatusVal">Inactive</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Network Protocol:</span>
+            <span class="info-val highlight" id="protocolVal">N/A</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center: Drag & Drop & Queue Panel -->
+      <section class="card transfer-card">
+        <div class="card-header">
+          <h2>Send Files</h2>
+          <span class="step-indicator">Step 2</span>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" multiple style="display: none;">
+          <input type="file" id="folderInput" webkitdirectory multiple style="display: none;">
+
+          <div class="dropzone-content">
+            <div class="upload-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <h3>Drag & Drop Files or Folders</h3>
+            <p>Direct peer-to-peer streaming • Unlimited file size</p>
+
+            <div class="browse-buttons">
+              <button class="btn btn-secondary" id="browseFilesBtn">Select Files</button>
+              <button class="btn btn-secondary" id="browseFolderBtn">Select Folder (Zip)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Queue List -->
+        <div class="queue-section hidden" id="queueSection">
+          <div class="queue-header">
+            <h3>Selected Queue (<span id="queueCount">0</span>)</h3>
+            <button class="text-btn text-danger" id="clearQueueBtn">Clear All</button>
+          </div>
+          <div class="queue-list" id="queueList"></div>
+
+          <button class="btn btn-success btn-block btn-lg" id="sendFilesBtn" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            Send Files P2P
+          </button>
+        </div>
+
+        <!-- Active Transfer Dashboard -->
+        <div class="transfer-dashboard hidden" id="transferDashboard">
+          <div class="transfer-header">
+            <div class="transfer-title-group">
+              <span class="transfer-status-badge" id="transferStatusBadge">Transferring...</span>
+              <h3 id="transferFileName">filename.ext</h3>
+            </div>
+            <span class="transfer-size-text" id="transferSizeText">0 MB / 0 MB</span>
+          </div>
+
+          <!-- Progress Bar & Details -->
+          <div class="progress-container">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div class="progress-meta">
+              <span class="progress-percent" id="progressPercent">0%</span>
+              <div class="speed-eta-group">
+                <span class="speed-val" id="speedVal">0.0 MB/s</span>
+                <span class="dot-separator">•</span>
+                <span class="eta-val" id="etaVal">ETA: --</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Control Buttons -->
+          <div class="transfer-controls">
+            <button class="btn btn-secondary btn-sm" id="pauseTransferBtn">Pause</button>
+            <button class="btn btn-secondary btn-sm hidden" id="resumeTransferBtn">Resume</button>
+            <button class="btn btn-danger btn-sm" id="cancelTransferBtn">Cancel</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Received Downloads & Session History -->
+      <section class="card history-card">
+        <div class="card-header">
+          <h2>Received Files</h2>
+          <span class="badge-count" id="receivedCount">0</span>
+        </div>
+
+        <div class="history-empty" id="historyEmpty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <p>No incoming transfers yet.</p>
+          <span class="subtext">Files received from your paired device will appear here ready for instant download.</span>
+        </div>
+
+        <div class="received-list" id="receivedList"></div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>🔒 End-to-End P2P WebRTC. Zero files stored on backend servers.</p>
+    </footer>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal-overlay hidden" id="qrModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Pair via QR Code</h3>
+        <button class="icon-btn close-modal" id="closeQrModal">&times;</button>
+      </div>
+      <div class="modal-body text-center">
+        <p>Scan this QR code with a phone or secondary device camera to pair instantly:</p>
+        <div class="qr-container" id="qrContainer"></div>
+        <div class="qr-link-box" id="qrLinkText">https://...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ICE / TURN Settings Modal -->
+  <div class="modal-overlay hidden" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>WebRTC & TURN Configuration</h3>
+        <button class="icon-btn close-modal" id="closeSettingsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">HyperDrop uses free Google STUN servers by default. If you are behind strict corporate firewalls (Symmetric NAT), configure a custom TURN relay server below.</p>
+        
+        <div class="form-group">
+          <label>TURN Server URI</label>
+          <input type="text" id="turnServerInput" placeholder="turn:turn.example.com:3478" class="form-input">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="turnUserInput" placeholder="user" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>Credential / Secret</label>
+            <input type="password" id="turnPassInput" placeholder="password" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="forceTurnCheck">
+            Force TURN relay transport (For testing relay mode)
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="resetIceBtn">Reset Defaults</button>
+          <button class="btn btn-primary" id="saveIceBtn">Save Configuration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/signaling.js"></script>
+  <script src="js/webrtc.js"></script>
+  <script src="js/fileTransfer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
