@@ -79,11 +79,13 @@ class P2PManager {
     });
 
     this.signaling.on('ice_candidate', async (candidate) => {
-      if (candidate && candidate.candidate) {
+      if (candidate) {
         if (this.pc && this.pc.remoteDescription && this.pc.remoteDescription.type) {
           try {
-            await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch (e) {}
+            await this.pc.addIceCandidate(candidate);
+          } catch (e) {
+            console.warn('[WebRTC] addIceCandidate error:', e);
+          }
         } else {
           this.remoteIceCandidates.push(candidate);
         }
@@ -442,9 +444,9 @@ class P2PManager {
     if (!this.pc || !this.pc.remoteDescription) return;
     while (this.remoteIceCandidates.length > 0) {
       const candidate = this.remoteIceCandidates.shift();
-      if (candidate && candidate.candidate) {
+      if (candidate) {
         try {
-          await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
+          await this.pc.addIceCandidate(candidate);
         } catch (e) {
           console.warn('[WebRTC Mobile] Draining ICE candidate error:', e);
         }
@@ -462,6 +464,7 @@ class P2PManager {
 
     const config = {
       iceServers: this.getIceServers(),
+      iceCandidatePoolSize: 10,
       iceTransportPolicy: (this.customIceConfig && this.customIceConfig.forceTurn) ? 'relay' : 'all',
       bundlePolicy: 'max-bundle',
       rtcpMuxPolicy: 'require',
