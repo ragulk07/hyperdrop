@@ -208,6 +208,10 @@ class FileTransferManager {
       this.p2p.sendData(JSON.stringify({ type: 'TRANSFER_PAUSE', id: this.currentSendTask.id }));
       this.stopSpeedTracker();
       this.emit('transfer_status_change', { status: 'Paused' });
+    } else if (this.currentReceiveTask) {
+      this.p2p.sendData(JSON.stringify({ type: 'TRANSFER_PAUSE', id: this.currentReceiveTask.id }));
+      this.stopSpeedTracker();
+      this.emit('transfer_status_change', { status: 'Paused' });
     }
   }
 
@@ -216,12 +220,15 @@ class FileTransferManager {
       this.currentSendTask.isPaused = false;
       this.p2p.sendData(JSON.stringify({
         type: 'TRANSFER_RESUME',
-        id: this.currentSendTask.id,
-        lastReceivedIndex: this.currentSendTask.currentChunkIndex - 1
+        id: this.currentSendTask.id
       }));
       this.startSpeedTracker();
       this.emit('transfer_status_change', { status: 'Transferring...' });
       this.readAndSendNextChunk();
+    } else if (this.currentReceiveTask) {
+      this.p2p.sendData(JSON.stringify({ type: 'TRANSFER_RESUME', id: this.currentReceiveTask.id }));
+      this.startSpeedTracker();
+      this.emit('transfer_status_change', { status: 'Transferring...' });
     }
   }
 
@@ -274,12 +281,19 @@ class FileTransferManager {
 
       case 'TRANSFER_PAUSE': {
         this.stopSpeedTracker();
-        this.emit('transfer_status_change', { status: 'Paused by Sender' });
+        if (this.currentSendTask) {
+          this.currentSendTask.isPaused = true;
+        }
+        this.emit('transfer_status_change', { status: 'Paused' });
         break;
       }
 
       case 'TRANSFER_RESUME': {
         this.startSpeedTracker();
+        if (this.currentSendTask && this.currentSendTask.isPaused) {
+          this.currentSendTask.isPaused = false;
+          this.readAndSendNextChunk();
+        }
         this.emit('transfer_status_change', { status: 'Transferring...' });
         break;
       }
