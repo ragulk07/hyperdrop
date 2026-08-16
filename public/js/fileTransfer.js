@@ -1,8 +1,8 @@
 class FileTransferManager {
   constructor(p2pManager) {
     this.p2p = p2pManager;
-    this.CHUNK_SIZE = 32 * 1024; // 32KB per chunk
-    this.MAX_BUFFER_AMOUNT = 256 * 1024; // 256KB backpressure threshold
+    this.CHUNK_SIZE = 128 * 1024; // 128KB per chunk for high throughput
+    this.MAX_BUFFER_AMOUNT = 4 * 1024 * 1024; // 4MB backpressure threshold to prevent starvation
 
     this.sendQueue = [];
     this.currentSendTask = null;
@@ -131,7 +131,7 @@ class FileTransferManager {
     this.readAndSendNextChunk();
   }
 
-  readAndSendNextChunk() {
+  async readAndSendNextChunk() {
     const task = this.currentSendTask;
     if (!task || task.isPaused || task.isCancelled) return;
 
@@ -160,12 +160,12 @@ class FileTransferManager {
     const end = Math.min(start + this.CHUNK_SIZE, task.size);
     const blobSlice = task.file.slice(start, end);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
+    try {
+      const rawBuffer = blobSlice.arrayBuffer ? await blobSlice.arrayBuffer() : await this.readBlobAsArrayBuffer(blobSlice);
+      
       if (!this.currentSendTask || this.currentSendTask.id !== task.id) return;
       if (task.isPaused || task.isCancelled) return;
 
-      const rawBuffer = e.target.result;
       const chunkIndex = task.currentChunkIndex;
 
       // Pack [4 bytes uint32 index] + [payload]
@@ -194,12 +194,21 @@ class FileTransferManager {
         // Continue loop
         this.readAndSendNextChunk();
       } else {
-        // Retry
-        setTimeout(() => this.readAndSendNextChunk(), 50);
+        // Retry shortly if buffered
+        setTimeout(() => this.readAndSendNextChunk(), 10);
       }
-    };
+    } catch (err) {
+      console.error('[FileTransfer] Chunk read error:', err);
+    }
+  }
 
-    reader.readAsArrayBuffer(blobSlice);
+  readBlobAsArrayBuffer(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (err) => reject(err);
+      reader.readAsArrayBuffer(blob);
+    });
   }
 
   pauseTransfer() {

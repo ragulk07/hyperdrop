@@ -534,7 +534,7 @@ class P2PManager {
   setupDataChannel(channel) {
     this.dataChannel = channel;
     this.dataChannel.binaryType = 'arraybuffer';
-    this.dataChannel.bufferedAmountLowThreshold = 64 * 1024;
+    this.dataChannel.bufferedAmountLowThreshold = 512 * 1024; // 512KB threshold
 
     const handleOpen = () => {
       console.log('[WebRTC Mobile] DataChannel OPEN & READY!');
