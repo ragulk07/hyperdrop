@@ -517,53 +517,63 @@ class P2PManager {
     };
 
     if (isInitiator) {
-      const dc = this.pc.createDataChannel('fileTransfer', { ordered: true });
-      this.setupDataChannel(dc);
+      this.dataChannels = [];
+      const dcCount = 4;
+      for (let i = 0; i < dcCount; i++) {
+        const dc = this.pc.createDataChannel(`fileTransfer_${i}`, { ordered: true });
+        this.setupDataChannel(dc, i);
+      }
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
       await this.sendSignal({ type: 'OFFER', offer });
     } else {
+      this.dataChannels = [];
       this.pc.ondatachannel = (event) => {
-        console.log('[WebRTC Mobile] DataChannel received by Joiner!');
-        this.setupDataChannel(event.channel);
+        console.log('[WebRTC Mobile] DataChannel received by Joiner:', event.channel.label);
+        this.setupDataChannel(event.channel, this.dataChannels.length);
       };
     }
   }
 
-  setupDataChannel(channel) {
-    this.dataChannel = channel;
-    this.dataChannel.binaryType = 'arraybuffer';
-    this.dataChannel.bufferedAmountLowThreshold = 512 * 1024; // 512KB threshold
+  setupDataChannel(channel, index = 0) {
+    channel.binaryType = 'arraybuffer';
+    channel.bufferedAmountLowThreshold = 512 * 1024; // 512KB threshold
+    this.dataChannels[index] = channel;
+    if (index === 0) this.dataChannel = channel;
 
     const handleOpen = () => {
-      console.log('[WebRTC Mobile] DataChannel OPEN & READY!');
-      this.checkTransportType();
-      this.emit('channel_open');
+      console.log(`[WebRTC Mobile] DataChannel ${channel.label} OPEN & READY!`);
+      if (index === 0) {
+        this.checkTransportType();
+        this.emit('channel_open');
+      }
     };
 
-    if (this.dataChannel.readyState === 'open') {
+    if (channel.readyState === 'open') {
       handleOpen();
     } else {
-      this.dataChannel.onopen = handleOpen;
+      channel.onopen = handleOpen;
     }
 
-    this.dataChannel.onmessage = (event) => {
+    channel.onmessage = (event) => {
       this.emit('data_received', event.data);
     };
 
-    this.dataChannel.onbufferedamountlow = () => {
+    channel.onbufferedamountlow = () => {
       this.emit('buffered_amount_low');
     };
 
-    this.dataChannel.onclose = () => {
-      console.warn('[WebRTC Mobile] DataChannel Closed');
-      this.emit('channel_close');
-      this.emit('peer_left');
+    channel.onclose = () => {
+      console.warn(`[WebRTC Mobile] DataChannel ${channel.label} Closed`);
+      if (index === 0) {
+        this.emit('channel_close');
+        this.emit('peer_left');
+      }
     };
 
-    this.dataChannel.onerror = (err) => {
-      console.error('[WebRTC Mobile] DataChannel Error:', err);
+    channel.onerror = (err) => {
+      console.error(`[WebRTC Mobile] DataChannel ${channel.label} Error:`, err);
       this.emit('channel_error', err);
     };
   }
@@ -590,20 +600,28 @@ class P2PManager {
     }
   }
 
-  sendData(data) {
-    if (this.dataChannel && this.dataChannel.readyState === 'open') {
-      this.dataChannel.send(data);
+  sendData(data, channelIndex = 0) {
+    const targetChannel = (this.dataChannels && this.dataChannels[channelIndex]) ? this.dataChannels[channelIndex] : this.dataChannel;
+    if (targetChannel && targetChannel.readyState === 'open') {
+      targetChannel.send(data);
       return true;
     }
     return false;
   }
 
-  getBufferedAmount() {
-    return this.dataChannel ? this.dataChannel.bufferedAmount : 0;
+  getBufferedAmount(channelIndex = 0) {
+    const targetChannel = (this.dataChannels && this.dataChannels[channelIndex]) ? this.dataChannels[channelIndex] : this.dataChannel;
+    return targetChannel ? targetChannel.bufferedAmount : 0;
+  }
+
+  getTotalBufferedAmount() {
+    if (!this.dataChannels || this.dataChannels.length === 0) return this.getBufferedAmount(0);
+    return this.dataChannels.reduce((sum, ch) => sum + (ch ? ch.bufferedAmount : 0), 0);
   }
 
   isChannelReady() {
-    return this.dataChannel && this.dataChannel.readyState === 'open';
+    return (this.dataChannel && this.dataChannel.readyState === 'open') ||
+           (this.dataChannels && this.dataChannels.some(ch => ch && ch.readyState === 'open'));
   }
 
   close() {

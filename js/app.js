@@ -353,9 +353,18 @@ document.addEventListener('DOMContentLoaded', () => {
     speedVal.textContent = `${speedMBs} MB/s`;
 
     if (etaSec > 0) {
-      const mins = Math.floor(etaSec / 60);
+      const hours = Math.floor(etaSec / 3600);
+      const mins = Math.floor((etaSec % 3600) / 60);
       const secs = etaSec % 60;
-      etaVal.textContent = `ETA: ${mins > 0 ? mins + 'm ' : ''}${secs}s`;
+      let etaStr = 'ETA: ';
+      if (hours > 0) {
+        etaStr += `${hours}h ${mins}m remaining`;
+      } else if (mins > 0) {
+        etaStr += `${mins}m ${secs}s remaining`;
+      } else {
+        etaStr += `${secs}s remaining`;
+      }
+      etaVal.textContent = etaStr;
     } else {
       etaVal.textContent = 'ETA: --';
     }
