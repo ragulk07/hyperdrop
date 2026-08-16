@@ -10,6 +10,9 @@ class FileTransferManager {
     this.receivedFiles = [];
     this.listeners = new Map();
 
+    // Multi-channel round robin
+    this.currentChannelIndex = 0;
+
     // Speed tracking
     this.speedTimer = null;
     this.bytesInWindow = 0;
@@ -138,7 +141,7 @@ class FileTransferManager {
     if (task.currentChunkIndex >= task.totalChunks) {
       // Completed sending all chunks
       console.log('[FileTransfer] Finished sending file:', task.name);
-      this.p2p.sendData(JSON.stringify({ type: 'FILE_END', id: task.id }));
+      this.p2p.sendData(JSON.stringify({ type: 'FILE_END', id: task.id }), 0);
       this.emit('send_complete', task);
       this.currentSendTask = null;
       this.stopSpeedTracker();
@@ -150,9 +153,28 @@ class FileTransferManager {
       return;
     }
 
-    // Backpressure check
-    if (this.p2p.getBufferedAmount() > this.MAX_BUFFER_AMOUNT) {
+    // Select next open channel with available buffer space
+    const numChannels = (this.p2p.dataChannels && this.p2p.dataChannels.length > 0) ? this.p2p.dataChannels.length : 1;
+    let targetChannelIdx = -1;
+
+    for (let i = 0; i < numChannels; i++) {
+      const idx = (this.currentChannelIndex + i) % numChannels;
+      if (this.p2p.getBufferedAmount(idx) < this.MAX_BUFFER_AMOUNT) {
+        targetChannelIdx = idx;
+        this.currentChannelIndex = (idx + 1) % numChannels;
+        break;
+      }
+    }
+
+    if (targetChannelIdx === -1) {
+      // All channels full; retry after brief tick
       task.isWaitingForBuffer = true;
+      setTimeout(() => {
+        if (task.isWaitingForBuffer) {
+          task.isWaitingForBuffer = false;
+          this.readAndSendNextChunk();
+        }
+      }, 5);
       return;
     }
 
@@ -174,7 +196,7 @@ class FileTransferManager {
       indexView.setUint32(0, chunkIndex, false); // Big endian
       packet.set(new Uint8Array(rawBuffer), 4);
 
-      const sent = this.p2p.sendData(packet.buffer);
+      const sent = this.p2p.sendData(packet.buffer, targetChannelIdx);
       if (sent) {
         task.currentChunkIndex++;
         this.bytesInWindow += rawBuffer.byteLength;
@@ -191,11 +213,11 @@ class FileTransferManager {
           etaSeconds: this.calculateETA(task.size - bytesSent)
         });
 
-        // Continue loop
+        // Continue loop immediately
         this.readAndSendNextChunk();
       } else {
-        // Retry shortly if buffered
-        setTimeout(() => this.readAndSendNextChunk(), 10);
+        // Retry shortly
+        setTimeout(() => this.readAndSendNextChunk(), 5);
       }
     } catch (err) {
       console.error('[FileTransfer] Chunk read error:', err);
