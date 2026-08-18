@@ -518,7 +518,7 @@ class P2PManager {
 
     if (isInitiator) {
       this.dataChannels = [];
-      const dcCount = 4;
+      const dcCount = 8;
       for (let i = 0; i < dcCount; i++) {
         const dc = this.pc.createDataChannel(`fileTransfer_${i}`, { ordered: true });
         this.setupDataChannel(dc, i);
@@ -538,7 +538,7 @@ class P2PManager {
 
   setupDataChannel(channel, index = 0) {
     channel.binaryType = 'arraybuffer';
-    channel.bufferedAmountLowThreshold = 512 * 1024; // 512KB threshold
+    channel.bufferedAmountLowThreshold = 256 * 1024; // 256KB threshold for instant buffer recovery
     this.dataChannels[index] = channel;
     if (index === 0) this.dataChannel = channel;
 
@@ -561,7 +561,7 @@ class P2PManager {
     };
 
     channel.onbufferedamountlow = () => {
-      this.emit('buffered_amount_low');
+      this.emit('buffered_amount_low', { channelIndex: index });
     };
 
     channel.onclose = () => {
