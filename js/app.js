@@ -138,6 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   p2p.on('status_update', (msg) => {
+    if (p2p.isChannelReady()) {
+      peerStatusVal.textContent = 'Connected to Device';
+      peerStatusVal.className = 'info-val text-success';
+      return;
+    }
     peerStatusVal.textContent = msg;
     if (msg.includes('Established') || msg.includes('Connected')) {
       peerStatusVal.className = 'info-val text-success';
