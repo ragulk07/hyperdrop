@@ -377,9 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  let totalHistoryCount = 0;
+
   transfer.on('send_complete', (task) => {
     resetDashboardControls();
     transferDashboard.classList.add('hidden');
+    addSentFileToList(task);
     showToast(`Successfully sent ${task.name}`, 'success');
   });
 
@@ -421,10 +424,32 @@ document.addEventListener('DOMContentLoaded', () => {
     transfer.cancelTransfer();
   });
 
-  // --- RECEIVED LIST RENDERING ---
+  // --- HISTORY LIST RENDERING ---
+  function addSentFileToList(task) {
+    historyEmpty.classList.add('hidden');
+    totalHistoryCount++;
+    receivedCount.textContent = totalHistoryCount;
+
+    const el = document.createElement('div');
+    el.className = 'received-item';
+    el.innerHTML = `
+      <div class="received-main">
+        <span class="received-name">${escapeHtml(task.name)}</span>
+        <span class="received-meta">${formatBytes(task.size)} • ${new Date().toLocaleTimeString()}</span>
+      </div>
+      <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Sent
+      </span>
+    `;
+
+    receivedList.prepend(el);
+  }
+
   function addReceivedFileToList(file) {
     historyEmpty.classList.add('hidden');
-    receivedCount.textContent = transfer.receivedFiles.length;
+    totalHistoryCount++;
+    receivedCount.textContent = totalHistoryCount;
 
     const el = document.createElement('div');
     el.className = 'received-item';
