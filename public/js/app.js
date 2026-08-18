@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const signaling = window.SignalingClient ? new SignalingClient() : null;
   const p2p = new P2PManager(signaling);
   const transfer = new FileTransferManager(p2p);
+  window.p2p = p2p;
+  window.transfer = transfer;
 
   // DOM Elements
   const connectionBadge = document.getElementById('connectionBadge');
